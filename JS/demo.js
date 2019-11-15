@@ -1,7 +1,9 @@
 var scene, camera, renderer, mesh;
 var keyboard = {};
 var player = { height: 0.5, speed: 0.2, turnSpeed: Math.PI * 0.02 };
+var crate, crateTexture, crateNormalMap, crateBumpMap;
 var meshFloor;
+var USE_WIREFRAME = false;
 
 function init() {
   scene = new THREE.Scene();
@@ -14,15 +16,15 @@ function init() {
   renderer = new THREE.WebGLRenderer();
   document.body.appendChild(renderer.domElement);
   meshFloor = new THREE.Mesh(
-    new THREE.PlaneGeometry(10, 10, 10, 10),
-    new THREE.MeshPhongMaterial({ color: "white", wireframe: false })
+    new THREE.PlaneGeometry(20, 20, 10, 10),
+    new THREE.MeshPhongMaterial({ color: "white", wireframe: USE_WIREFRAME })
   );
   meshFloor.rotation.x -= Math.PI / 2;
   meshFloor.receiveShadow = true;
   scene.add(meshFloor);
   mesh = new THREE.Mesh(
     new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshPhongMaterial({ color: "orange", wireframe: false })
+    new THREE.MeshPhongMaterial({ color: "orange", wireframe: USE_WIREFRAME })
   );
 
   mesh.position.y += 1;
@@ -40,6 +42,26 @@ function init() {
   light.shadow.camera.far = 25;
   scene.add(light);
 
+  var textureLoader = new THREE.TextureLoader();
+  crateTexture = new textureLoader.load("crate0/crate0_diffuse.png");
+  crateBumpMap = new textureLoader.load("crate0/crate0_bump.png");
+  crateNormalMap = new textureLoader.load("crate0/crate0_normal.png");
+
+  crate = new THREE.Mesh(
+    new THREE.BoxGeometry(2, 2, 2),
+    new THREE.MeshPhongMaterial({
+      color: 0xffffff,
+      map: crateTexture,
+      bumpMap: crateBumpMap,
+      normalMap: crateNormalMap
+    })
+  );
+  scene.add(crate);
+  crate.position.set(2.5, 3 / 2, 2.5);
+
+  crate.receiveShadow = true;
+  crate.castShadow = true;
+
   camera.position.set(0, player.height, -5);
   camera.lookAt(new THREE.Vector3(0, player.height, 0));
 
@@ -53,6 +75,7 @@ function animate() {
 
   mesh.rotation.x += 0.02;
   mesh.rotation.y += 0.01;
+  crate.rotation.y += 0.01;
   if (keyboard[87]) {
     //key = W
     camera.position.x -= Math.sin(camera.rotation.y) * player.speed;
