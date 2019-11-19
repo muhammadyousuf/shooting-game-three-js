@@ -1,4 +1,4 @@
-var scene, camera, renderer, mesh;
+var scene, camera, renderer, mesh, clock;
 var keyboard = {};
 var player = { height: 0.5, speed: 0.2, turnSpeed: Math.PI * 0.02 };
 var crate, crateTexture, crateNormalMap, crateBumpMap;
@@ -37,10 +37,17 @@ var models = {
     obj: "models/Pirateship.obj",
     mtl: "models/Pirateship.mtl",
     mesh: null
+  },
+  uzi: {
+    obj: "models/uziGold.obj",
+    mtl: "models/uziGold.mtl",
+    mesh: null,
+    castShadow: false
   }
 };
 var meshes = {};
 function init() {
+  clock = new THREE.Clock();
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(
     70,
@@ -107,28 +114,10 @@ function init() {
     })
   );
   scene.add(crate);
-  crate.position.set(2.5, 3 / 2, 2.5);
+  crate.position.set(2.5, 3 / 2.75, 2.5);
 
   crate.receiveShadow = true;
   crate.castShadow = true;
-
-  // var mtlLoader = new THREE.MTLLoader(loadingManager);
-  // mtlLoader.load("models/Tent_Poles_01.mtl", function(material) {
-  //   material.preload();
-  //   var objLoaderer = new THREE.OBJLoader(loadingManager);
-  //   objLoaderer.setMaterials(material);
-  //   objLoaderer.load("models/Tent_Poles_01.obj", function(mesh) {
-  //     mesh.traverse(function(node) {
-  //       if (node instanceof THREE.Mesh) {
-  //         node.castShadow = true;
-  //         node.receiveShadow = true;
-  //       }
-  //     });
-  //     scene.add(mesh);
-  //     mesh.position.set(-5, 0, 4);
-  //     mesh.rotation.y = -Math.PI / 4;
-  //   });
-  // });
 
   for (var _key in models) {
     function modelLoad(key) {
@@ -142,8 +131,11 @@ function init() {
         objLoaderer.load(models[key].obj, function(mesh) {
           mesh.traverse(function(node) {
             if (node instanceof THREE.Mesh) {
-              node.castShadow = true;
-              node.receiveShadow = true;
+              if ("castShadow" in models[key])
+                node.castShadow = models[key].castShadow;
+              else node.castShadow = true;
+              if ("receiveShadow" in models[key]) node.receiveShadow = models;
+              else node.receiveShadow = true;
             }
           });
           models[key].mesh = mesh;
@@ -182,6 +174,11 @@ function onResoureceLoaded() {
   meshes["pirateship"].position.set(-11, -1, -3);
   meshes["pirateship"].rotation.set(0, Math.PI, 0);
   scene.add(meshes["pirateship"]);
+
+  meshes["playerweapon"] = models.uzi.mesh.clone();
+  meshes["playerweapon"].position.set(0, 2, 0);
+  meshes["playerweapon"].scale.set(5, 5, 5);
+  scene.add(meshes["playerweapon"]);
 }
 
 function animate() {
@@ -194,6 +191,9 @@ function animate() {
     return;
   }
   requestAnimationFrame(animate);
+
+  var time = Date.now() * 0.0005;
+  var delta = clock.getDelta();
 
   mesh.rotation.x += 0.02;
   mesh.rotation.y += 0.01;
@@ -230,7 +230,19 @@ function animate() {
   if (keyboard[39]) {
     camera.rotation.y += player.turnSpeed;
   }
+  meshes["playerweapon"].position.set(
+    camera.position.x - Math.sin(camera.rotation.y + Math.PI / 6) * 0.75,
+    camera.position.y -
+      0.2 +
+      Math.sin(time * 2 + camera.position.x + camera.position.z) * 0.03,
+    camera.position.z + Math.cos(camera.rotation.y + Math.PI / 6) * 0.75
+  );
 
+  meshes["playerweapon"].rotation.set(
+    camera.rotation.x,
+    camera.rotation.y - Math.PI,
+    camera.rotation.z
+  );
   renderer.render(scene, camera);
 }
 
