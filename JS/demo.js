@@ -1,6 +1,6 @@
 var scene, camera, renderer, mesh, clock;
 var keyboard = {};
-var player = { height: 0.5, speed: 0.2, turnSpeed: Math.PI * 0.02 };
+var player = { height: 0.5, speed: 0.2, turnSpeed: Math.PI * 0.02, canShot: 0 };
 var crate, crateTexture, crateNormalMap, crateBumpMap;
 var meshFloor;
 var USE_WIREFRAME = false;
@@ -46,6 +46,7 @@ var models = {
   }
 };
 var meshes = {};
+var bullets = [];
 function init() {
   clock = new THREE.Clock();
   scene = new THREE.Scene();
@@ -198,6 +199,16 @@ function animate() {
   mesh.rotation.x += 0.02;
   mesh.rotation.y += 0.01;
   crate.rotation.y += 0.01;
+
+  for (var index = 0; index < bullets.length; index += 1) {
+    if (bullets[index] === undefined) continue;
+    if (bullets[index].alive === false) {
+      bullets.splice(index, 1);
+      continue;
+    }
+    bullets[index].position.add(bullets[index].velocity);
+  }
+
   if (keyboard[87]) {
     //key = W
     camera.position.x -= Math.sin(camera.rotation.y) * player.speed;
@@ -230,10 +241,72 @@ function animate() {
   if (keyboard[39]) {
     camera.rotation.y += player.turnSpeed;
   }
+
+  if (keyboard[32] && player.canShot <= 0) {
+    var listener = new THREE.AudioListener();
+    camera.add(listener);
+
+    // create a global audio source
+    var sound = new THREE.Audio(listener);
+
+    // load a sound and set it as the Audio object's buffer
+    var audioLoader = new THREE.AudioLoader();
+
+    audioLoader.load("sound/gunShot.wav", function(buffer) {
+      sound.setBuffer(buffer);
+      //sound.setLoop(true);
+      sound.setVolume(0.5);
+      sound.play();
+    });
+    setTimeout(function() {
+      if (
+        meshes["playerweapon"].position.x <= 0.42049919629121146 &&
+        meshes["playerweapon"].position.x <= 0.40062154556811885
+      ) {
+        var man = new THREE.Audio(listener);
+        console.log(meshes["playerweapon"].position.y);
+        // load a sound and set it as the Audio object's buffer
+        var audioLoader1 = new THREE.AudioLoader();
+        audioLoader1.load("sound/man.wav", function(buffer) {
+          man.setBuffer(buffer);
+          //sound.setLoop(true);
+          man.setVolume(0.5);
+          man.play();
+        });
+      }
+    }, 1000);
+
+    var bullet = new THREE.Mesh(
+      new THREE.SphereGeometry(0.06, 8, 8),
+      new THREE.MeshBasicMaterial({ color: 0xd4af37 })
+    );
+
+    bullet.position.set(
+      meshes["playerweapon"].position.x,
+      meshes["playerweapon"].position.y + 0.15,
+      meshes["playerweapon"].position.z
+    );
+
+    bullet.velocity = new THREE.Vector3(
+      -Math.sin(camera.rotation.y),
+      0,
+      Math.cos(camera.rotation.y)
+    );
+    bullet.alive = true;
+    setTimeout(function() {
+      bullet.alive = false;
+      scene.remove(bullet);
+    }, 1000);
+    bullets.push(bullet);
+    scene.add(bullet);
+    player.canShot = 10;
+  }
+  if (player.canShot > 0) player.canShot -= 1;
+
   meshes["playerweapon"].position.set(
     camera.position.x - Math.sin(camera.rotation.y + Math.PI / 6) * 0.75,
     camera.position.y -
-      0.2 +
+      0.1 +
       Math.sin(time * 2 + camera.position.x + camera.position.z) * 0.03,
     camera.position.z + Math.cos(camera.rotation.y + Math.PI / 6) * 0.75
   );
