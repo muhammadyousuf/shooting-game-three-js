@@ -22,6 +22,24 @@ var loadingScreen = {
 var RESOURCES_LOAD = false;
 var LOADIND_MANAGER = null;
 
+var models = {
+  tent: {
+    obj: "models/Tent_Poles_01.obj",
+    mtl: "models/Tent_Poles_01.mtl",
+    mesh: null
+  },
+  campfire: {
+    obj: "models/Campfire_01.obj",
+    mtl: "models/Campfire_01.mtl",
+    mesh: null
+  },
+  pirateship: {
+    obj: "models/Pirateship.obj",
+    mtl: "models/Pirateship.mtl",
+    mesh: null
+  }
+};
+var meshes = {};
 function init() {
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(
@@ -34,7 +52,7 @@ function init() {
   loadingScreen.box.position.set(0, 0, 5);
   loadingScreen.camera.lookAt(loadingScreen.box.position);
   loadingScreen.scene.add(loadingScreen.box);
-
+  console.log("Int");
   loadingManager = new THREE.LoadingManager();
   loadingManager.onProgress = function(item, loaded, total) {
     console.log(item, loaded, total);
@@ -42,6 +60,7 @@ function init() {
   loadingManager.onLoad = function() {
     console.log("Loaded all resources");
     RESOURCES_LOAD = true;
+    onResoureceLoaded();
   };
 
   renderer = new THREE.WebGLRenderer();
@@ -93,24 +112,46 @@ function init() {
   crate.receiveShadow = true;
   crate.castShadow = true;
 
-  var mtlLoader = new THREE.MTLLoader(loadingManager);
-  mtlLoader.load("models/Tent_Poles_01.mtl", function(material) {
-    material.preload();
-    var objLoaderer = new THREE.OBJLoader(loadingManager);
-    objLoaderer.setMaterials(material);
-    objLoaderer.load("models/Tent_Poles_01.obj", function(mesh) {
-      mesh.traverse(function(node) {
-        if (node instanceof THREE.Mesh) {
-          node.castShadow = true;
-          node.receiveShadow = true;
-        }
-      });
-      scene.add(mesh);
-      mesh.position.set(-5, 0, 4);
-      mesh.rotation.y = -Math.PI / 4;
-    });
-  });
+  // var mtlLoader = new THREE.MTLLoader(loadingManager);
+  // mtlLoader.load("models/Tent_Poles_01.mtl", function(material) {
+  //   material.preload();
+  //   var objLoaderer = new THREE.OBJLoader(loadingManager);
+  //   objLoaderer.setMaterials(material);
+  //   objLoaderer.load("models/Tent_Poles_01.obj", function(mesh) {
+  //     mesh.traverse(function(node) {
+  //       if (node instanceof THREE.Mesh) {
+  //         node.castShadow = true;
+  //         node.receiveShadow = true;
+  //       }
+  //     });
+  //     scene.add(mesh);
+  //     mesh.position.set(-5, 0, 4);
+  //     mesh.rotation.y = -Math.PI / 4;
+  //   });
+  // });
 
+  for (var _key in models) {
+    function modelLoad(key) {
+      console.log("mesh", _key);
+      var mtlLoader = new THREE.MTLLoader(loadingManager);
+
+      mtlLoader.load(models[key].mtl, function(material) {
+        material.preload();
+        var objLoaderer = new THREE.OBJLoader(loadingManager);
+        objLoaderer.setMaterials(material);
+        objLoaderer.load(models[key].obj, function(mesh) {
+          mesh.traverse(function(node) {
+            if (node instanceof THREE.Mesh) {
+              node.castShadow = true;
+              node.receiveShadow = true;
+            }
+          });
+          models[key].mesh = mesh;
+        });
+      });
+    }
+    modelLoad(_key);
+  }
   camera.position.set(0, player.height, -5);
   camera.lookAt(new THREE.Vector3(0, player.height, 0));
 
@@ -119,6 +160,30 @@ function init() {
   renderer.shadowMap.type = THREE.BasicShadowMap;
   animate();
 }
+
+function onResoureceLoaded() {
+  console.log("models", models.tent);
+  meshes["tent1"] = models.tent.mesh.clone();
+  meshes["tent2"] = models.tent.mesh.clone();
+  meshes["campfire1"] = models.campfire.mesh.clone();
+  meshes["campfire2"] = models.campfire.mesh.clone();
+  meshes["pirateship"] = models.pirateship.mesh.clone();
+
+  meshes["tent1"].position.set(-4, 0, 4);
+  scene.add(meshes["tent1"]);
+  meshes["tent2"].position.set(-7, 0, 4);
+  scene.add(meshes["tent2"]);
+
+  meshes["campfire1"].position.set(-4, 0, 1);
+  scene.add(meshes["campfire1"]);
+  meshes["campfire2"].position.set(-7, 0, 1);
+  scene.add(meshes["campfire2"]);
+
+  meshes["pirateship"].position.set(-11, -1, -3);
+  meshes["pirateship"].rotation.set(0, Math.PI, 0);
+  scene.add(meshes["pirateship"]);
+}
+
 function animate() {
   if (RESOURCES_LOAD === false) {
     requestAnimationFrame(animate);
